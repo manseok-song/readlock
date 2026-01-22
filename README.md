@@ -10,6 +10,252 @@
 
 ReadLock은 스마트폰 잠금 기능을 활용하여 독서에 집중할 수 있는 환경을 제공하고, 독서 기록과 커뮤니티 기능을 통해 독서 습관 형성을 돕는 소셜 독서 플랫폼입니다.
 
+---
+
+## 아키텍처
+
+### 시스템 전체 구조
+
+```mermaid
+flowchart TB
+    subgraph Client["📱 Client Layer"]
+        Flutter["Flutter App<br/>(Android/iOS)"]
+        Web["Web App<br/>(Flutter Web)"]
+    end
+
+    subgraph Gateway["🚪 API Gateway"]
+        ALB["AWS ALB<br/>Load Balancer"]
+    end
+
+    subgraph Services["⚙️ Microservices (ECS Fargate)"]
+        Auth["Auth Service<br/>:8000"]
+        Book["Book Service<br/>:8001"]
+        Reading["Reading Service<br/>:8002"]
+        Community["Community Service<br/>:8003"]
+        User["User Service<br/>:8004"]
+        Map["Map Service<br/>:8005"]
+        AI["AI Service<br/>:8006"]
+        Notification["Notification Service<br/>:8007"]
+        Gamification["Gamification Service<br/>:8008"]
+        Subscription["Subscription Service<br/>:8009"]
+    end
+
+    subgraph Data["💾 Data Layer"]
+        PostgreSQL[(PostgreSQL 15<br/>Aurora)]
+        Redis[(Redis 7<br/>ElastiCache)]
+    end
+
+    subgraph External["🌐 External APIs"]
+        Naver["Naver Book API"]
+        FCM["Firebase FCM"]
+        OAuth["OAuth Providers<br/>(Google, Apple, Kakao)"]
+    end
+
+    Flutter --> ALB
+    Web --> ALB
+    ALB --> Services
+    Services --> PostgreSQL
+    Services --> Redis
+    Book --> Naver
+    Notification --> FCM
+    Auth --> OAuth
+
+    style Client fill:#e1f5fe
+    style Gateway fill:#fff3e0
+    style Services fill:#e8f5e9
+    style Data fill:#fce4ec
+    style External fill:#f3e5f5
+```
+
+### 백엔드 마이크로서비스 아키텍처
+
+```mermaid
+flowchart LR
+    subgraph Core["🔐 Core Services"]
+        Auth["Auth Service<br/>━━━━━━━━━━<br/>• JWT 인증<br/>• OAuth 로그인<br/>• 토큰 관리"]
+        User["User Service<br/>━━━━━━━━━━<br/>• 프로필 관리<br/>• 팔로우/팔로잉<br/>• 독서 목표"]
+    end
+
+    subgraph Domain["📚 Domain Services"]
+        Book["Book Service<br/>━━━━━━━━━━<br/>• 책 검색 (Naver)<br/>• 서재 관리<br/>• ISBN 조회"]
+        Reading["Reading Service<br/>━━━━━━━━━━<br/>• 독서 세션<br/>• 통계/스트릭<br/>• 일일 기록"]
+        Community["Community Service<br/>━━━━━━━━━━<br/>• 인용구/리뷰<br/>• 피드<br/>• 좋아요/댓글"]
+        Map["Map Service<br/>━━━━━━━━━━<br/>• 서점 검색<br/>• 체크인<br/>• 즐겨찾기"]
+    end
+
+    subgraph Support["🎮 Support Services"]
+        AI["AI Service<br/>━━━━━━━━━━<br/>• 맞춤 추천<br/>• 유사 도서<br/>• 인사이트"]
+        Notification["Notification<br/>━━━━━━━━━━<br/>• 푸시 알림<br/>• 알림 설정<br/>• FCM 연동"]
+        Gamification["Gamification<br/>━━━━━━━━━━<br/>• 레벨/뱃지<br/>• 상점/코인<br/>• 리더보드"]
+        Subscription["Subscription<br/>━━━━━━━━━━<br/>• 구독 플랜<br/>• 결제 연동<br/>• 코인 관리"]
+    end
+
+    Auth --> User
+    User --> Book
+    User --> Reading
+    User --> Community
+    Book --> Reading
+    Reading --> Gamification
+    Community --> Notification
+    AI --> Book
+    AI --> Reading
+
+    style Core fill:#ffcdd2
+    style Domain fill:#c8e6c9
+    style Support fill:#bbdefb
+```
+
+### Flutter Clean Architecture
+
+```mermaid
+flowchart TB
+    subgraph Presentation["🎨 Presentation Layer"]
+        direction TB
+        Screens["Screens<br/>━━━━━━━━━━<br/>• SplashScreen<br/>• HomeScreen<br/>• LibraryScreen<br/>• ReadingScreen<br/>• ProfileScreen"]
+        Widgets["Widgets<br/>━━━━━━━━━━<br/>• BookCard<br/>• ReadingTimer<br/>• StatisticsChart"]
+        Providers["Providers (Riverpod)<br/>━━━━━━━━━━<br/>• AuthProvider<br/>• BookProvider<br/>• ReadingProvider"]
+    end
+
+    subgraph Domain["🏛️ Domain Layer"]
+        direction TB
+        Entities["Entities<br/>━━━━━━━━━━<br/>• User<br/>• Book<br/>• ReadingSession<br/>• Quote"]
+        UseCases["Use Cases<br/>━━━━━━━━━━<br/>• LoginUseCase<br/>• GetBooksUseCase<br/>• StartReadingUseCase"]
+        RepoInterface["Repository Interfaces<br/>━━━━━━━━━━<br/>• IAuthRepository<br/>• IBookRepository<br/>• IReadingRepository"]
+    end
+
+    subgraph Data["💿 Data Layer"]
+        direction TB
+        RepoImpl["Repository Impl<br/>━━━━━━━━━━<br/>• AuthRepositoryImpl<br/>• BookRepositoryImpl"]
+        Remote["Remote DataSource<br/>━━━━━━━━━━<br/>• ApiClient (Dio)<br/>• AuthApi<br/>• BookApi"]
+        Local["Local DataSource<br/>━━━━━━━━━━<br/>• SecureStorage<br/>• SharedPreferences<br/>• SQLite Cache"]
+        Models["Models<br/>━━━━━━━━━━<br/>• UserModel<br/>• BookModel<br/>• (JSON ↔ Entity)"]
+    end
+
+    Screens --> Providers
+    Providers --> UseCases
+    UseCases --> RepoInterface
+    RepoInterface -.->|implements| RepoImpl
+    RepoImpl --> Remote
+    RepoImpl --> Local
+    Remote --> Models
+    Local --> Models
+    Models -.->|maps to| Entities
+
+    style Presentation fill:#e3f2fd
+    style Domain fill:#fff8e1
+    style Data fill:#fce4ec
+```
+
+### 데이터 흐름 (독서 세션 예시)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as 📱 Flutter App
+    participant Lock as 🔒 Phone Lock<br/>(Native)
+    participant API as ⚙️ Reading Service
+    participant DB as 💾 PostgreSQL
+    participant Redis as 📦 Redis
+    participant Gamify as 🎮 Gamification
+
+    App->>Lock: 독서 시작 요청
+    Lock->>Lock: Foreground Service 시작<br/>DND 모드 활성화
+    App->>API: POST /sessions<br/>{book_id, start_page}
+    API->>DB: INSERT reading_session
+    DB-->>API: session_id
+    API-->>App: {session_id, started_at}
+
+    Note over App,Lock: 📖 독서 진행 중...
+
+    App->>Lock: 독서 종료 요청
+    Lock->>Lock: DND 해제<br/>Service 종료
+    App->>API: PATCH /sessions/{id}<br/>{end_page, duration}
+    API->>DB: UPDATE reading_session
+    API->>Redis: UPDATE daily_stats
+    API->>Gamify: POST /events<br/>{type: reading_complete}
+    Gamify->>DB: UPDATE user_level, badges
+    Gamify-->>API: {xp_gained, new_badges}
+    API-->>App: {session, stats, rewards}
+```
+
+### AWS 인프라 구조
+
+```mermaid
+flowchart TB
+    subgraph VPC["☁️ AWS VPC (10.0.0.0/16)"]
+        subgraph Public["Public Subnets"]
+            ALB["Application<br/>Load Balancer"]
+            NAT["NAT Gateway"]
+        end
+
+        subgraph Private["Private Subnets"]
+            subgraph ECS["ECS Fargate Cluster"]
+                Auth["Auth<br/>Service"]
+                Book["Book<br/>Service"]
+                Reading["Reading<br/>Service"]
+                More["...7 more<br/>services"]
+            end
+
+            subgraph Data["Data Tier"]
+                Aurora["Aurora<br/>PostgreSQL"]
+                ElastiCache["ElastiCache<br/>Redis"]
+            end
+        end
+    end
+
+    subgraph External["External"]
+        CloudFront["CloudFront<br/>CDN"]
+        S3["S3<br/>Static Assets"]
+        Route53["Route 53<br/>DNS"]
+        ECR["ECR<br/>Container Registry"]
+    end
+
+    subgraph Monitoring["Monitoring"]
+        CloudWatch["CloudWatch<br/>Logs & Metrics"]
+        XRay["X-Ray<br/>Tracing"]
+    end
+
+    Route53 --> CloudFront
+    CloudFront --> ALB
+    CloudFront --> S3
+    ALB --> ECS
+    ECS --> Aurora
+    ECS --> ElastiCache
+    ECS --> NAT
+    NAT --> Internet((Internet))
+    ECR -.-> ECS
+    ECS --> CloudWatch
+    ECS --> XRay
+
+    style VPC fill:#fff3e0
+    style Public fill:#e3f2fd
+    style Private fill:#e8f5e9
+    style External fill:#fce4ec
+    style Monitoring fill:#f3e5f5
+```
+
+### 서비스 통신 매트릭스
+
+```mermaid
+flowchart LR
+    subgraph Legend["범례"]
+        direction LR
+        L1["🔵 동기 호출 (REST)"]
+        L2["🟢 이벤트 기반 (Redis Pub/Sub)"]
+        L3["🟡 캐시 조회"]
+    end
+```
+
+| From ↓ / To → | Auth | User | Book | Reading | Community | Gamification | Notification |
+|---------------|:----:|:----:|:----:|:-------:|:---------:|:------------:|:------------:|
+| **Flutter**   | 🔵   | 🔵   | 🔵   | 🔵      | 🔵        | 🔵           | 🔵           |
+| **Auth**      | -    | 🔵   | -    | -       | -         | -            | -            |
+| **Reading**   | -    | 🔵   | 🔵   | -       | -         | 🟢           | 🟢           |
+| **Community** | -    | 🔵   | 🔵   | -       | -         | 🟢           | 🟢           |
+| **AI**        | -    | 🟡   | 🟡   | 🟡      | -         | -            | -            |
+
+---
+
 ### 핵심 기능
 
 - **폰잠금 독서 모드**: 독서 중 스마트폰 사용을 제한하여 집중력 향상
