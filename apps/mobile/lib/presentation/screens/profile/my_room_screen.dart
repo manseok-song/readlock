@@ -165,9 +165,9 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         children: [
                           _InventoryItem(icon: Icons.chair, label: '의자'),
-                          _InventoryItem(icon: Icons.lamp, label: '조명'),
+                          _InventoryItem(icon: Icons.lightbulb_outline, label: '조명'),
                           _InventoryItem(icon: Icons.local_florist, label: '화분'),
-                          _InventoryItem(icon: Icons.photo_frame, label: '액자'),
+                          _InventoryItem(icon: Icons.photo_outlined, label: '액자'),
                           _InventoryItem(icon: Icons.pets, label: '펫'),
                         ],
                       ),

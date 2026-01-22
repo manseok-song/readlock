@@ -31,6 +31,8 @@ abstract class AuthRepository {
   Future<Either<AuthFailure, User>> getCurrentUser();
 
   Future<bool> isLoggedIn();
+
+  Future<Either<AuthFailure, Unit>> updateFcmToken(String token, String platform);
 }
 
 /// Auth repository implementation
@@ -226,6 +228,24 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> isLoggedIn() async {
     final accessToken = await _secureStorage.getAccessToken();
     return accessToken != null;
+  }
+
+  @override
+  Future<Either<AuthFailure, Unit>> updateFcmToken(String token, String platform) async {
+    try {
+      await _apiClient.post(
+        '/users/me/fcm-token',
+        data: {
+          'token': token,
+          'platform': platform,
+        },
+      );
+      return const Right(unit);
+    } on NetworkException catch (e) {
+      return Left(AuthFailure.networkError(e.message));
+    } catch (e) {
+      return Left(AuthFailure.unknown(e.toString()));
+    }
   }
 
   Future<void> _saveTokens(AuthTokens tokens) async {

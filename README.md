@@ -383,8 +383,16 @@ flutter pub get
 # 코드 생성
 flutter pub run build_runner build --delete-conflicting-outputs
 
-# 앱 실행
+# 앱 실행 (모바일)
 flutter run
+
+# 웹 빌드
+flutter build web --release
+
+# 웹 로컬 서버 실행
+cd build/web
+python -m http.server 3000
+# 브라우저에서 http://localhost:3000 접속
 ```
 
 ## API 엔드포인트

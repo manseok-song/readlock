@@ -105,3 +105,36 @@ class PlatformServiceException extends AppException {
   @override
   String toString() => 'PlatformServiceException: $message (code: $code)';
 }
+
+/// Unauthorized exception (401)
+class UnauthorizedException extends AppException {
+  const UnauthorizedException({
+    String message = '인증이 필요합니다.',
+    String? code,
+  }) : super(message: message, code: code);
+
+  @override
+  String toString() => 'UnauthorizedException: $message (code: $code)';
+}
+
+/// Conflict exception (409)
+class ConflictException extends AppException {
+  const ConflictException({
+    String message = '리소스 충돌이 발생했습니다.',
+    String? code,
+  }) : super(message: message, code: code);
+
+  @override
+  String toString() => 'ConflictException: $message (code: $code)';
+}
+
+/// Not found exception (404)
+class NotFoundException extends AppException {
+  const NotFoundException({
+    String message = '요청한 리소스를 찾을 수 없습니다.',
+    String? code,
+  }) : super(message: message, code: code);
+
+  @override
+  String toString() => 'NotFoundException: $message (code: $code)';
+}

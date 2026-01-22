@@ -200,13 +200,13 @@ class ErrorInterceptor extends Interceptor {
       case 400:
         return ValidationException(message: message);
       case 401:
-        return AuthException(message: message, code: code);
+        return UnauthorizedException(message: message, code: code);
       case 403:
         return AuthException(message: '접근 권한이 없습니다.', code: 'AUTH_004');
       case 404:
-        return ServerException(message: message, code: code, statusCode: 404);
+        return NotFoundException(message: message, code: code);
       case 409:
-        return ServerException(message: message, code: code, statusCode: 409);
+        return ConflictException(message: message, code: code);
       case 429:
         return const ServerException(
           message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
@@ -263,3 +263,119 @@ class LoggingInterceptor extends Interceptor {
     handler.next(err);
   }
 }
+
+/// API Client wrapper for Dio
+class ApiClient {
+  final Dio _dio;
+
+  ApiClient(this._dio);
+
+  /// GET request
+  Future<Response<dynamic>> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.get(
+        path,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _extractException(e);
+    }
+  }
+
+  /// POST request
+  Future<Response<dynamic>> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.post(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _extractException(e);
+    }
+  }
+
+  /// PATCH request
+  Future<Response<dynamic>> patch(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.patch(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _extractException(e);
+    }
+  }
+
+  /// DELETE request
+  Future<Response<dynamic>> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.delete(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _extractException(e);
+    }
+  }
+
+  /// PUT request
+  Future<Response<dynamic>> put(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.put(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _extractException(e);
+    }
+  }
+
+  /// Extract exception from DioException
+  AppException _extractException(DioException e) {
+    if (e.error is AppException) {
+      return e.error as AppException;
+    }
+    return ServerException(
+      message: e.message ?? '알 수 없는 오류가 발생했습니다.',
+    );
+  }
+}
+
+/// API Client provider
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final dio = ref.watch(dioProvider);
+  return ApiClient(dio);
+});

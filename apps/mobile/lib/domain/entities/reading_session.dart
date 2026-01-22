@@ -8,12 +8,18 @@ class ReadingSession with _$ReadingSession {
   const factory ReadingSession({
     required String id,
     required String userBookId,
-    required DateTime startedAt,
-    DateTime? endedAt,
-    int? durationSec,
-    @Default(0) int pagesRead,
-    @Default(false) bool wasLocked,
-    required String platform,
+    required DateTime startTime,
+    DateTime? endTime,
+    required int startPage,
+    int? endPage,
+    @Default(0) int duration,
+    int? focusScore,
+    @Default(false) bool isOffline,
+    @Default(false) bool needsSync,
+    DateTime? pausedAt,
+    @Default(false) bool isPaused,
+    Duration? totalPauseDuration,
+    String? platform,
     DateTime? createdAt,
   }) = _ReadingSession;
 
@@ -29,7 +35,8 @@ class ReadingSessionResult with _$ReadingSessionResult {
     required int pagesRead,
     required SessionRewards rewards,
     required int streakDays,
-    required DailyGoalProgress dailyGoalProgress,
+    DailyGoalProgress? dailyGoalProgress,
+    @Default(false) bool isOffline,
   }) = _ReadingSessionResult;
 
   factory ReadingSessionResult.fromJson(Map<String, dynamic> json) =>
@@ -41,6 +48,8 @@ class SessionRewards with _$SessionRewards {
   const factory SessionRewards({
     required int coinsEarned,
     required int expEarned,
+    @Default(0) int bonusCoins,
+    @Default(0) int bonusExp,
     @Default([]) List<Badge> newBadges,
   }) = _SessionRewards;
 

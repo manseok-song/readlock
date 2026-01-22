@@ -2,6 +2,60 @@
 
 모든 주요 변경 사항이 이 파일에 기록됩니다.
 
+## [2.0.1] - 2026-01-22
+
+### Flutter 웹 빌드 완성
+
+#### 추가된 파일
+- `lib/core/errors/exceptions.dart`: `UnauthorizedException`, `ConflictException`, `NotFoundException` 예외 클래스 추가
+- `lib/presentation/providers/repository_providers.dart`: Repository Provider 정의 파일 생성
+  - `secureStorageProvider`
+  - `authRepositoryProvider`
+  - `bookRepositoryProvider`
+  - `readingRepositoryProvider`
+
+#### 수정된 파일
+- `lib/core/errors/failures.dart`: Failure 팩토리 메서드 추가
+  - `AuthFailure`: `invalidCredentials()`, `emailAlreadyInUse()`, `sessionExpired()`, `networkError()`, `validation()`, `unknown()`
+  - `BookFailure`: `notFound()`, `alreadyInLibrary()`, `networkError()`, `unknown()`
+  - `ReadingFailure`: `sessionAlreadyActive()`, `sessionNotFound()`, `networkError()`, `unknown()`
+
+- `lib/data/datasources/remote/api_client.dart`:
+  - `ApiClient` 래퍼 클래스 구현 (GET/POST/PATCH/DELETE/PUT)
+  - `apiClientProvider` 추가
+  - ErrorInterceptor에서 새 예외 클래스 사용
+
+- `lib/domain/entities/reading_session.dart`:
+  - `ReadingSession` 엔티티 필드 업데이트 (startTime, endTime, startPage, endPage, focusScore, isOffline 등)
+  - `ReadingSessionResult`에 `isOffline` 필드 추가
+  - `SessionRewards`에 `bonusCoins`, `bonusExp` 필드 추가
+
+- `lib/data/repositories/auth_repository_impl.dart`:
+  - `updateFcmToken` 메서드 추가
+
+- `lib/presentation/routes/app_router.dart`:
+  - `ReadingSessionResult` import 추가
+
+- `lib/presentation/providers/auth_provider.dart`:
+  - `repository_providers.dart` import 추가
+  - socialLogin 파라미터명 수정
+
+- `lib/presentation/screens/profile/my_room_screen.dart`:
+  - 존재하지 않는 아이콘 대체 (`Icons.lamp` → `Icons.lightbulb_outline`, `Icons.photo_frame` → `Icons.photo_outlined`)
+
+- `lib/main.dart`:
+  - `SystemUiOverlayStyle` 오타 수정
+  - 웹 플랫폼에서 사용 불가능한 API를 `!kIsWeb` 조건으로 분기 처리
+
+- `pubspec.yaml`:
+  - 누락된 폰트 파일 주석 처리 (Pretendard 폰트)
+
+#### 빌드 결과
+- Flutter 웹 빌드 성공 (`flutter build web --release`)
+- 빌드 출력: `apps/mobile/build/web`
+
+---
+
 ## [2.0.0] - 2026-01-22
 
 ### 개요

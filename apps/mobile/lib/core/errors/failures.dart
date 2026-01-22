@@ -45,8 +45,28 @@ class AuthFailure extends Failure {
     dynamic details,
   }) : super(message: message, code: code, details: details);
 
-  // Predefined auth failures
-  static const invalidCredentials = AuthFailure(
+  // Factory constructors for common auth failures
+  const factory AuthFailure.invalidCredentials() = _InvalidCredentialsFailure;
+  const factory AuthFailure.emailAlreadyInUse() = _EmailAlreadyInUseFailure;
+  const factory AuthFailure.sessionExpired() = _SessionExpiredFailure;
+
+  factory AuthFailure.networkError(String message) => AuthFailure(
+    message,
+    code: 'NETWORK_ERROR',
+  );
+
+  factory AuthFailure.validation(String message) => AuthFailure(
+    message,
+    code: 'VALIDATION_ERROR',
+  );
+
+  factory AuthFailure.unknown(String message) => AuthFailure(
+    message,
+    code: 'UNKNOWN_ERROR',
+  );
+
+  // Predefined auth failures (legacy)
+  static const invalidCredentialsStatic = AuthFailure(
     '이메일 또는 비밀번호가 올바르지 않습니다.',
     code: 'AUTH_001',
   );
@@ -72,6 +92,27 @@ class AuthFailure extends Failure {
   );
 }
 
+class _InvalidCredentialsFailure extends AuthFailure {
+  const _InvalidCredentialsFailure() : super(
+    '이메일 또는 비밀번호가 올바르지 않습니다.',
+    code: 'AUTH_001',
+  );
+}
+
+class _EmailAlreadyInUseFailure extends AuthFailure {
+  const _EmailAlreadyInUseFailure() : super(
+    '이미 사용 중인 이메일입니다.',
+    code: 'USER_002',
+  );
+}
+
+class _SessionExpiredFailure extends AuthFailure {
+  const _SessionExpiredFailure() : super(
+    '세션이 만료되었습니다. 다시 로그인해주세요.',
+    code: 'AUTH_002',
+  );
+}
+
 /// Validation-related failures
 class ValidationFailure extends Failure {
   const ValidationFailure(String message, {String? code})
@@ -86,7 +127,22 @@ class BookFailure extends Failure {
     dynamic details,
   }) : super(message: message, code: code, details: details);
 
-  static const notFound = BookFailure(
+  // Factory constructors
+  const factory BookFailure.notFound() = _BookNotFoundFailure;
+  const factory BookFailure.alreadyInLibrary() = _BookAlreadyInLibraryFailure;
+
+  factory BookFailure.networkError(String message) => BookFailure(
+    message,
+    code: 'NETWORK_ERROR',
+  );
+
+  factory BookFailure.unknown(String message) => BookFailure(
+    message,
+    code: 'UNKNOWN_ERROR',
+  );
+
+  // Static constants (legacy)
+  static const notFoundStatic = BookFailure(
     '도서를 찾을 수 없습니다.',
     code: 'BOOK_001',
   );
@@ -96,7 +152,7 @@ class BookFailure extends Failure {
     code: 'BOOK_002',
   );
 
-  static const alreadyInLibrary = BookFailure(
+  static const alreadyInLibraryStatic = BookFailure(
     '이미 책장에 추가된 도서입니다.',
     code: 'BOOK_003',
   );
@@ -104,6 +160,20 @@ class BookFailure extends Failure {
   static const notInLibrary = BookFailure(
     '책장에 없는 도서입니다.',
     code: 'BOOK_004',
+  );
+}
+
+class _BookNotFoundFailure extends BookFailure {
+  const _BookNotFoundFailure() : super(
+    '도서를 찾을 수 없습니다.',
+    code: 'BOOK_001',
+  );
+}
+
+class _BookAlreadyInLibraryFailure extends BookFailure {
+  const _BookAlreadyInLibraryFailure() : super(
+    '이미 책장에 추가된 도서입니다.',
+    code: 'BOOK_003',
   );
 }
 
@@ -121,6 +191,43 @@ class ReadingSessionFailure extends Failure {
   );
 
   static const sessionNotFound = ReadingSessionFailure(
+    '독서 세션을 찾을 수 없습니다.',
+    code: 'SESSION_002',
+  );
+}
+
+/// Reading failures (alias for reading session failures)
+class ReadingFailure extends Failure {
+  const ReadingFailure(
+    String message, {
+    String? code,
+    dynamic details,
+  }) : super(message: message, code: code, details: details);
+
+  // Factory constructors
+  const factory ReadingFailure.sessionAlreadyActive() = _SessionAlreadyActiveFailure;
+  const factory ReadingFailure.sessionNotFound() = _ReadingSessionNotFoundFailure;
+
+  factory ReadingFailure.networkError(String message) => ReadingFailure(
+    message,
+    code: 'NETWORK_ERROR',
+  );
+
+  factory ReadingFailure.unknown(String message) => ReadingFailure(
+    message,
+    code: 'UNKNOWN_ERROR',
+  );
+}
+
+class _SessionAlreadyActiveFailure extends ReadingFailure {
+  const _SessionAlreadyActiveFailure() : super(
+    '이미 진행 중인 독서 세션이 있습니다.',
+    code: 'SESSION_001',
+  );
+}
+
+class _ReadingSessionNotFoundFailure extends ReadingFailure {
+  const _ReadingSessionNotFoundFailure() : super(
     '독서 세션을 찾을 수 없습니다.',
     code: 'SESSION_002',
   );

@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/constants/storage_keys.dart';
 import '../../domain/entities/user.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import 'repository_providers.dart';
 
 /// Authentication state
 class AuthState {
@@ -162,7 +163,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
     final repository = ref.read(authRepositoryProvider);
     final result = await repository.socialLogin(
       provider: provider,
-      idToken: idToken,
+      accessToken: idToken,
     );
 
     return result.fold(
