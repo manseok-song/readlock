@@ -3,9 +3,11 @@ class ApiEndpoints {
   ApiEndpoints._();
 
   // Base URL - configure based on environment
+  // 로컬 개발: http://localhost:8000/v1
+  // 프로덕션: https://api.readlock.app/v1
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://api.readlock.app/v1',
+    defaultValue: 'http://localhost:8000/v1',
   );
 
   // Auth endpoints

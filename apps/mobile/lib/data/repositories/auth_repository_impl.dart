@@ -60,15 +60,20 @@ class AuthRepositoryImpl implements AuthRepository {
         },
       );
 
+      // API response structure: { success: true, data: { user, tokens } }
+      final data = response.data['data'] ?? response.data;
+      final tokensData = data['tokens'] ?? data;
+      final userData = data['user'];
+
       final tokens = AuthTokens(
-        accessToken: response.data['access_token'],
-        refreshToken: response.data['refresh_token'],
-        expiresIn: response.data['expires_in'],
+        accessToken: tokensData['accessToken'] ?? tokensData['access_token'],
+        refreshToken: tokensData['refreshToken'] ?? tokensData['refresh_token'],
+        expiresIn: tokensData['expiresIn'] ?? tokensData['expires_in'] ?? 1800,
       );
 
       await _saveTokens(tokens);
 
-      final user = User.fromJson(response.data['user']);
+      final user = User.fromJson(userData);
 
       return Right(AuthResult(
         user: user,
@@ -100,15 +105,20 @@ class AuthRepositoryImpl implements AuthRepository {
         },
       );
 
+      // API response structure: { success: true, data: { user, tokens } }
+      final data = response.data['data'] ?? response.data;
+      final tokensData = data['tokens'] ?? data;
+      final userData = data['user'];
+
       final tokens = AuthTokens(
-        accessToken: response.data['access_token'],
-        refreshToken: response.data['refresh_token'],
-        expiresIn: response.data['expires_in'],
+        accessToken: tokensData['accessToken'] ?? tokensData['access_token'],
+        refreshToken: tokensData['refreshToken'] ?? tokensData['refresh_token'],
+        expiresIn: tokensData['expiresIn'] ?? tokensData['expires_in'] ?? 1800,
       );
 
       await _saveTokens(tokens);
 
-      final user = User.fromJson(response.data['user']);
+      final user = User.fromJson(userData);
 
       return Right(AuthResult(
         user: user,
@@ -139,20 +149,25 @@ class AuthRepositoryImpl implements AuthRepository {
         },
       );
 
+      // API response structure: { success: true, data: { user, tokens, isNewUser } }
+      final data = response.data['data'] ?? response.data;
+      final tokensData = data['tokens'] ?? data;
+      final userData = data['user'];
+
       final tokens = AuthTokens(
-        accessToken: response.data['access_token'],
-        refreshToken: response.data['refresh_token'],
-        expiresIn: response.data['expires_in'],
+        accessToken: tokensData['accessToken'] ?? tokensData['access_token'],
+        refreshToken: tokensData['refreshToken'] ?? tokensData['refresh_token'],
+        expiresIn: tokensData['expiresIn'] ?? tokensData['expires_in'] ?? 1800,
       );
 
       await _saveTokens(tokens);
 
-      final user = User.fromJson(response.data['user']);
+      final user = User.fromJson(userData);
 
       return Right(AuthResult(
         user: user,
         tokens: tokens,
-        isNewUser: response.data['is_new_user'] ?? false,
+        isNewUser: data['isNewUser'] ?? data['is_new_user'] ?? false,
       ));
     } on NetworkException catch (e) {
       return Left(AuthFailure.networkError(e.message));
@@ -189,16 +204,21 @@ class AuthRepositoryImpl implements AuthRepository {
         },
       );
 
+      // API response structure: { success: true, data: { user, tokens } }
+      final data = response.data['data'] ?? response.data;
+      final tokensData = data['tokens'] ?? data;
+      final userData = data['user'];
+
       final tokens = AuthTokens(
-        accessToken: response.data['access_token'],
-        refreshToken: response.data['refresh_token'],
-        expiresIn: response.data['expires_in'],
+        accessToken: tokensData['accessToken'] ?? tokensData['access_token'],
+        refreshToken: tokensData['refreshToken'] ?? tokensData['refresh_token'],
+        expiresIn: tokensData['expiresIn'] ?? tokensData['expires_in'] ?? 1800,
       );
 
       await _saveTokens(tokens);
 
       return Right(AuthResult(
-        user: User.fromJson(response.data['user']),
+        user: User.fromJson(userData),
         tokens: tokens,
         isNewUser: false,
       ));
@@ -214,7 +234,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<AuthFailure, User>> getCurrentUser() async {
     try {
       final response = await _apiClient.get('/users/me');
-      return Right(User.fromJson(response.data));
+      // API response structure: { success: true, data: { ... } }
+      final userData = response.data['data'] ?? response.data;
+      return Right(User.fromJson(userData));
     } on UnauthorizedException {
       return const Left(AuthFailure.sessionExpired());
     } on NetworkException catch (e) {
