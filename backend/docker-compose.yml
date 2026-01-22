@@ -1,0 +1,282 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with PostGIS
+  postgres:
+    image: postgis/postgis:15-3.4-alpine
+    container_name: readlock-postgres
+    environment:
+      POSTGRES_USER: readlock
+      POSTGRES_PASSWORD: readlock_dev_password
+      POSTGRES_DB: readlock
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U readlock"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: readlock-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-auth
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - ENVIRONMENT=development
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.auth.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # Book Service
+  book-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-book
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/1
+      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID:-}
+      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET:-}
+      - ENVIRONMENT=development
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.book.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # Reading Service
+  reading-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-reading
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/2
+      - ENVIRONMENT=development
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.reading.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # Community Service
+  community-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-community
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/3
+      - ENVIRONMENT=development
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.community.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-user
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/4
+      - ENVIRONMENT=development
+    ports:
+      - "8004:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.user.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # Map Service
+  map-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-map
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/5
+      - ENVIRONMENT=development
+    ports:
+      - "8005:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.map.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # AI Service
+  ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-ai
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/6
+      - ENVIRONMENT=development
+    ports:
+      - "8006:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.ai.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-notification
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/7
+      - ENVIRONMENT=development
+    ports:
+      - "8007:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.notification.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # Gamification Service
+  gamification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-gamification
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/8
+      - ENVIRONMENT=development
+    ports:
+      - "8008:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.gamification.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # Subscription Service
+  subscription-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: readlock-subscription
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://readlock:readlock_dev_password@postgres:5432/readlock
+      - REDIS_URL=redis://redis:6379/9
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - ENVIRONMENT=development
+    ports:
+      - "8009:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn services.subscription.app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: readlock-network

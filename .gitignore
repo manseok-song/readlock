@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.local
+
+# Logs
+*.log
+logs/
+
+# Test reports (keep structure but not content)
+backend/test-reports/*.json
+
+# Docker
+.docker/
+
+# Flutter
+apps/mobile/.dart_tool/
+apps/mobile/.packages
+apps/mobile/build/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/pubspec.lock
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Node
+node_modules/
+
+# Playwright screenshots
+.playwright-mcp/
+
+# Claude local settings
+.claude/settings.local.json

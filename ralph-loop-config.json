@@ -1,0 +1,600 @@
+{
+  "project": {
+    "name": "ReadLock 2.0",
+    "version": "1.0.0",
+    "description": "소셜 독서 플랫폼 - 폰잠금 기반 몰입형 독서 환경",
+    "repository": "readroom",
+    "created_at": "2026-01-22"
+  },
+
+  "config": {
+    "max_parallel_agents": 5,
+    "retry_on_failure": true,
+    "max_retries": 3,
+    "timeout_minutes": 60,
+    "checkpoint_interval_minutes": 15
+  },
+
+  "agents": [
+    {
+      "id": "agent-infra",
+      "name": "Infrastructure Agent",
+      "description": "AWS 인프라 및 CI/CD 파이프라인 구축",
+      "type": "infrastructure",
+      "priority": 1,
+      "model": "sonnet",
+      "parallel_group": "infra",
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "infra-vpc",
+          "name": "VPC 및 네트워크 구축",
+          "prompt": "Terraform을 사용하여 ReadLock 2.0을 위한 AWS VPC를 구축하세요. Public/Private/Data 서브넷, NAT Gateway, Security Groups를 포함해야 합니다. 파일 위치: infra/terraform/modules/vpc/",
+          "phase": "phase-0",
+          "estimated_minutes": 30
+        },
+        {
+          "id": "infra-rds",
+          "name": "RDS Aurora PostgreSQL 설정",
+          "prompt": "Aurora PostgreSQL Serverless v2 클러스터를 구성하세요. Multi-AZ, 자동 백업, Parameter Group을 포함합니다. 파일 위치: infra/terraform/modules/rds/",
+          "phase": "phase-0",
+          "estimated_minutes": 25
+        },
+        {
+          "id": "infra-redis",
+          "name": "ElastiCache Redis 설정",
+          "prompt": "Redis 7+ ElastiCache 클러스터를 구성하세요. 캐싱 및 세션 관리용입니다. 파일 위치: infra/terraform/modules/elasticache/",
+          "phase": "phase-0",
+          "estimated_minutes": 20
+        },
+        {
+          "id": "infra-ecs",
+          "name": "ECS Fargate 클러스터",
+          "prompt": "8개 마이크로서비스를 위한 ECS Fargate 클러스터를 구성하세요. Task Definition, Service Discovery, Auto Scaling을 포함합니다. 파일 위치: infra/terraform/modules/ecs/",
+          "phase": "phase-1",
+          "estimated_minutes": 45
+        },
+        {
+          "id": "infra-cicd",
+          "name": "CI/CD 파이프라인",
+          "prompt": "GitHub Actions를 사용한 CI/CD 파이프라인을 구성하세요. Backend와 Flutter 앱 빌드/배포를 자동화합니다. 파일 위치: .github/workflows/",
+          "phase": "phase-1",
+          "estimated_minutes": 40
+        },
+        {
+          "id": "infra-monitoring",
+          "name": "모니터링 및 알람",
+          "prompt": "CloudWatch 대시보드, 알람, X-Ray 추적을 설정하세요. SNS 알림과 Slack 연동을 포함합니다. 파일 위치: infra/terraform/modules/monitoring/",
+          "phase": "phase-2",
+          "estimated_minutes": 35
+        },
+        {
+          "id": "infra-cdn",
+          "name": "CloudFront 및 S3",
+          "prompt": "Flutter Web 호스팅을 위한 S3와 CloudFront CDN을 구성하세요. WAF 보안 규칙을 포함합니다. 파일 위치: infra/terraform/modules/s3_cloudfront/",
+          "phase": "phase-2",
+          "estimated_minutes": 30
+        },
+        {
+          "id": "infra-dr",
+          "name": "재해 복구 구성",
+          "prompt": "Cross-Region DR 구성을 설정하세요. Aurora 복제, S3 CRR, Route 53 Health Check를 포함합니다.",
+          "phase": "phase-4",
+          "estimated_minutes": 45
+        }
+      ]
+    },
+
+    {
+      "id": "agent-backend-core",
+      "name": "Backend Core Agent",
+      "description": "핵심 백엔드 서비스 (Auth, User, Book)",
+      "type": "backend",
+      "priority": 2,
+      "model": "sonnet",
+      "parallel_group": "backend",
+      "dependencies": ["agent-infra:infra-vpc"],
+      "tasks": [
+        {
+          "id": "backend-shared",
+          "name": "공유 라이브러리 구축",
+          "prompt": "FastAPI 공유 라이브러리를 구축하세요. database.py(SQLAlchemy async), security.py(JWT), middleware(auth, logging, rate_limit)를 포함합니다. 파일 위치: backend/shared/",
+          "phase": "phase-0",
+          "estimated_minutes": 40
+        },
+        {
+          "id": "backend-alembic",
+          "name": "Alembic 마이그레이션 설정",
+          "prompt": "Alembic 마이그레이션 환경을 설정하고 초기 스키마(users, profiles)를 생성하세요. 파일 위치: backend/alembic/",
+          "phase": "phase-0",
+          "estimated_minutes": 25
+        },
+        {
+          "id": "backend-auth",
+          "name": "Auth Service 구현",
+          "prompt": "인증 서비스를 구현하세요. 회원가입, 로그인, OAuth(Google/Apple/Kakao), JWT 토큰 갱신을 포함합니다. 파일 위치: backend/services/auth/",
+          "phase": "phase-1",
+          "estimated_minutes": 60
+        },
+        {
+          "id": "backend-user",
+          "name": "User Service 구현",
+          "prompt": "사용자 서비스를 구현하세요. 프로필 CRUD, 팔로우/팔로잉, 프로필 이미지 업로드를 포함합니다. 파일 위치: backend/services/user/",
+          "phase": "phase-1",
+          "estimated_minutes": 45
+        },
+        {
+          "id": "backend-book",
+          "name": "Book Service 구현",
+          "prompt": "도서 서비스를 구현하세요. 네이버 책 API 프록시, ISBN 조회, 바코드 스캔, 책장 CRUD, 독서 세션 관리를 포함합니다. ReadLock_NaverAPI_Guide_v2.0.md 참조. 파일 위치: backend/services/book/",
+          "phase": "phase-1",
+          "estimated_minutes": 75
+        }
+      ]
+    },
+
+    {
+      "id": "agent-backend-domain",
+      "name": "Backend Domain Agent",
+      "description": "도메인 백엔드 서비스 (Community, Map, AI)",
+      "type": "backend",
+      "priority": 3,
+      "model": "sonnet",
+      "parallel_group": "backend",
+      "dependencies": ["agent-backend-core:backend-book"],
+      "tasks": [
+        {
+          "id": "backend-community",
+          "name": "Community Service 구현",
+          "prompt": "커뮤니티 서비스를 구현하세요. 인용구(책속의 한줄) CRUD, 감상평 CRUD, 좋아요, 댓글, 피드 캐싱(Redis)을 포함합니다. 파일 위치: backend/services/community/",
+          "phase": "phase-2",
+          "estimated_minutes": 60
+        },
+        {
+          "id": "backend-map",
+          "name": "Map Service 구현",
+          "prompt": "독립서점 지도 서비스를 구현하세요. PostGIS 기반 위치 검색, 체크인, 서점 리뷰를 포함합니다. 파일 위치: backend/services/map/",
+          "phase": "phase-2",
+          "estimated_minutes": 50
+        },
+        {
+          "id": "backend-ai",
+          "name": "AI Service 구현",
+          "prompt": "AI 추천 서비스를 구현하세요. 협업 필터링, 컨텐츠 기반 추천, 독서 성향 분석을 포함합니다. 파일 위치: backend/services/ai/",
+          "phase": "phase-3",
+          "estimated_minutes": 70
+        }
+      ]
+    },
+
+    {
+      "id": "agent-backend-support",
+      "name": "Backend Support Agent",
+      "description": "지원 백엔드 서비스 (Gamification, Notification, Subscription)",
+      "type": "backend",
+      "priority": 4,
+      "model": "sonnet",
+      "parallel_group": "backend",
+      "dependencies": ["agent-backend-core:backend-user"],
+      "tasks": [
+        {
+          "id": "backend-notification",
+          "name": "Notification Service 구현",
+          "prompt": "알림 서비스를 구현하세요. Firebase FCM 연동, 알림 목록 조회, 읽음 처리를 포함합니다. 파일 위치: backend/services/notification/",
+          "phase": "phase-3",
+          "estimated_minutes": 40
+        },
+        {
+          "id": "backend-subscription",
+          "name": "Subscription Service 구현",
+          "prompt": "구독 결제 서비스를 구현하세요. Google Play/App Store 영수증 검증, 구독 상태 관리, Webhook 처리를 포함합니다. 파일 위치: backend/services/subscription/",
+          "phase": "phase-3",
+          "estimated_minutes": 55
+        },
+        {
+          "id": "backend-gamification",
+          "name": "Gamification Service 구현",
+          "prompt": "게이미피케이션 서비스를 구현하세요. 아바타, 마이룸, 상점, 뱃지, 보상 시스템, Redis Streams 이벤트 처리를 포함합니다. 파일 위치: backend/services/gamification/",
+          "phase": "phase-4",
+          "estimated_minutes": 70
+        }
+      ]
+    },
+
+    {
+      "id": "agent-flutter-core",
+      "name": "Flutter Core Agent",
+      "description": "Flutter 핵심 레이어 및 인증/책장 기능",
+      "type": "frontend",
+      "priority": 2,
+      "model": "sonnet",
+      "parallel_group": "frontend",
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "flutter-init",
+          "name": "Flutter 프로젝트 초기화",
+          "prompt": "Flutter 프로젝트를 초기화하세요. pubspec.yaml 설정(Riverpod, Dio, GoRouter 등), analysis_options.yaml, Firebase 설정을 포함합니다. ReadLock_Flutter_Code_v2.0.md 참조.",
+          "phase": "phase-0",
+          "estimated_minutes": 30
+        },
+        {
+          "id": "flutter-core",
+          "name": "Core 레이어 구축",
+          "prompt": "Core 레이어를 구축하세요. constants/, theme/(AppTheme, AppColors), utils/(extensions, validators), errors/(Failures)를 포함합니다. 파일 위치: lib/core/",
+          "phase": "phase-0",
+          "estimated_minutes": 35
+        },
+        {
+          "id": "flutter-network",
+          "name": "네트워킹 인프라",
+          "prompt": "Dio 기반 API 클라이언트를 구현하세요. AuthInterceptor(JWT 자동 갱신), 에러 핸들링, Retrofit API 정의를 포함합니다. 파일 위치: lib/data/datasources/remote/",
+          "phase": "phase-0",
+          "estimated_minutes": 40
+        },
+        {
+          "id": "flutter-auth",
+          "name": "인증 기능 구현",
+          "prompt": "인증 기능을 구현하세요. AuthRepository, AuthProvider(Riverpod), 로그인/회원가입 UI, 소셜 로그인(Google/Apple/Kakao)을 포함합니다. 파일 위치: lib/presentation/screens/auth/, lib/presentation/providers/auth_provider.dart",
+          "phase": "phase-1",
+          "estimated_minutes": 60
+        },
+        {
+          "id": "flutter-router",
+          "name": "라우팅 설정",
+          "prompt": "GoRouter 기반 라우팅을 설정하세요. 인증 상태 기반 리다이렉트, 딥링크, 네비게이션 가드를 포함합니다. 파일 위치: lib/presentation/routes/app_router.dart",
+          "phase": "phase-1",
+          "estimated_minutes": 25
+        },
+        {
+          "id": "flutter-library",
+          "name": "책장 기능 구현",
+          "prompt": "책장 기능을 구현하세요. Book 엔티티(Freezed), BookRepository, BookProvider, 검색 UI, 바코드 스캔(MobileScanner), 책장 UI를 포함합니다. 파일 위치: lib/presentation/screens/library/",
+          "phase": "phase-1",
+          "estimated_minutes": 70
+        },
+        {
+          "id": "flutter-stats",
+          "name": "통계 대시보드",
+          "prompt": "독서 통계 대시보드를 구현하세요. 일간/주간/월간 통계, 차트(fl_chart), 목표 달성률을 포함합니다. 파일 위치: lib/presentation/screens/profile/stats_dashboard_screen.dart",
+          "phase": "phase-2",
+          "estimated_minutes": 45
+        }
+      ]
+    },
+
+    {
+      "id": "agent-flutter-feature",
+      "name": "Flutter Feature Agent",
+      "description": "Flutter 핵심 기능 (독서 모드, 커뮤니티, 지도)",
+      "type": "frontend",
+      "priority": 3,
+      "model": "sonnet",
+      "parallel_group": "frontend",
+      "dependencies": ["agent-flutter-core:flutter-library"],
+      "tasks": [
+        {
+          "id": "flutter-reading",
+          "name": "독서 모드 구현",
+          "prompt": "독서 모드를 구현하세요. ReadingProvider, 타이머 위젯, 독서 결과 화면, reading_lock_service.dart(Platform Channel)를 포함합니다. 파일 위치: lib/presentation/screens/reading/, lib/services/reading_lock_service.dart",
+          "phase": "phase-1",
+          "estimated_minutes": 75
+        },
+        {
+          "id": "flutter-community",
+          "name": "커뮤니티 기능 구현",
+          "prompt": "커뮤니티 기능을 구현하세요. 인용구 피드, 인용구 작성, 감상평, 좋아요/댓글, 팔로잉 피드를 포함합니다. 파일 위치: lib/presentation/screens/discover/, lib/presentation/screens/community/",
+          "phase": "phase-2",
+          "estimated_minutes": 65
+        },
+        {
+          "id": "flutter-map",
+          "name": "서점 지도 구현",
+          "prompt": "독립서점 지도를 구현하세요. Google Maps, 위치 기반 검색, 서점 상세, 체크인, 리뷰를 포함합니다. 파일 위치: lib/presentation/screens/map/",
+          "phase": "phase-2",
+          "estimated_minutes": 55
+        }
+      ]
+    },
+
+    {
+      "id": "agent-flutter-premium",
+      "name": "Flutter Premium Agent",
+      "description": "Flutter 프리미엄 기능 (AI 추천, 결제, 게이미피케이션)",
+      "type": "frontend",
+      "priority": 4,
+      "model": "sonnet",
+      "parallel_group": "frontend",
+      "dependencies": ["agent-flutter-feature:flutter-community"],
+      "tasks": [
+        {
+          "id": "flutter-ai",
+          "name": "AI 추천 UI 구현",
+          "prompt": "AI 추천 UI를 구현하세요. 홈 탭 추천 섹션, 추천 카드, 독서 성향 프로필, 유사 사용자를 포함합니다. 파일 위치: lib/presentation/screens/home/, lib/presentation/screens/ai/",
+          "phase": "phase-3",
+          "estimated_minutes": 50
+        },
+        {
+          "id": "flutter-payment",
+          "name": "결제 기능 구현",
+          "prompt": "인앱 결제를 구현하세요. in_app_purchase 연동, 프리미엄 소개 UI, 구독 관리, 영수증 검증을 포함합니다. 파일 위치: lib/presentation/screens/payment/, lib/services/in_app_purchase_service.dart",
+          "phase": "phase-3",
+          "estimated_minutes": 60
+        },
+        {
+          "id": "flutter-gamification",
+          "name": "게이미피케이션 UI 구현",
+          "prompt": "게이미피케이션 UI를 구현하세요. 아바타 편집기, 마이룸 꾸미기(드래그앤드롭), 상점, 뱃지, 챌린지를 포함합니다. 파일 위치: lib/presentation/screens/avatar/, lib/presentation/screens/achievement/",
+          "phase": "phase-4",
+          "estimated_minutes": 80
+        }
+      ]
+    },
+
+    {
+      "id": "agent-native",
+      "name": "Native Platform Agent",
+      "description": "Android/iOS 네이티브 코드",
+      "type": "native",
+      "priority": 2,
+      "model": "sonnet",
+      "parallel_group": "native",
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "native-setup",
+          "name": "네이티브 프로젝트 설정",
+          "prompt": "Android/iOS 네이티브 프로젝트를 설정하세요. 필요한 권한, Firebase 설정, Platform Channel 기본 구조를 포함합니다.",
+          "phase": "phase-0",
+          "estimated_minutes": 30
+        },
+        {
+          "id": "native-android",
+          "name": "Android 폰잠금 서비스",
+          "prompt": "Android 폰잠금 기능을 구현하세요. Foreground Service(ReadingLockService.kt), DND 모드 관리, SYSTEM_ALERT_WINDOW 권한 처리를 포함합니다. 파일 위치: android/app/src/main/kotlin/",
+          "phase": "phase-1",
+          "estimated_minutes": 60
+        },
+        {
+          "id": "native-ios",
+          "name": "iOS 폰잠금 연동",
+          "prompt": "iOS 폰잠금 관련 기능을 구현하세요. Screen Time API 설정 딥링크, Focus Mode 안내, 화면 꺼짐 방지를 포함합니다. 파일 위치: ios/Runner/",
+          "phase": "phase-1",
+          "estimated_minutes": 45
+        }
+      ]
+    },
+
+    {
+      "id": "agent-test",
+      "name": "Test Agent",
+      "description": "테스트 작성 및 실행",
+      "type": "qa",
+      "priority": 5,
+      "model": "sonnet",
+      "parallel_group": "test",
+      "dependencies": ["agent-backend-core:backend-auth", "agent-flutter-core:flutter-auth"],
+      "tasks": [
+        {
+          "id": "test-backend-unit",
+          "name": "Backend 단위 테스트",
+          "prompt": "Backend 단위 테스트를 작성하세요. pytest, mockito를 사용하여 Auth, Book, Community 서비스 테스트를 포함합니다. 파일 위치: backend/tests/unit/",
+          "phase": "phase-1",
+          "estimated_minutes": 50
+        },
+        {
+          "id": "test-backend-integration",
+          "name": "Backend 통합 테스트",
+          "prompt": "Backend 통합 테스트를 작성하세요. API 엔드포인트 테스트, DB 연동 테스트를 포함합니다. 파일 위치: backend/tests/integration/",
+          "phase": "phase-2",
+          "estimated_minutes": 45
+        },
+        {
+          "id": "test-flutter-unit",
+          "name": "Flutter 단위/위젯 테스트",
+          "prompt": "Flutter 단위 및 위젯 테스트를 작성하세요. Provider 테스트, 위젯 테스트를 포함합니다. 파일 위치: test/",
+          "phase": "phase-1",
+          "estimated_minutes": 50
+        },
+        {
+          "id": "test-e2e",
+          "name": "E2E 테스트",
+          "prompt": "E2E 테스트를 작성하세요. 회원가입-로그인-독서-완료 플로우, 책장 추가 플로우를 포함합니다. 파일 위치: integration_test/",
+          "phase": "phase-2",
+          "estimated_minutes": 60
+        },
+        {
+          "id": "test-performance",
+          "name": "성능 테스트",
+          "prompt": "성능 테스트를 수행하세요. API 부하 테스트(Locust), 앱 성능 프로파일링을 포함합니다.",
+          "phase": "phase-3",
+          "estimated_minutes": 40
+        }
+      ]
+    }
+  ],
+
+  "phases": [
+    {
+      "id": "phase-0",
+      "name": "Foundation",
+      "description": "기반 인프라 및 프로젝트 설정",
+      "weeks": [1, 2],
+      "parallel_execution": [
+        {
+          "group": "infra",
+          "agents": ["agent-infra"],
+          "tasks": ["infra-vpc", "infra-rds", "infra-redis"]
+        },
+        {
+          "group": "backend",
+          "agents": ["agent-backend-core"],
+          "tasks": ["backend-shared", "backend-alembic"]
+        },
+        {
+          "group": "frontend",
+          "agents": ["agent-flutter-core"],
+          "tasks": ["flutter-init", "flutter-core", "flutter-network"]
+        },
+        {
+          "group": "native",
+          "agents": ["agent-native"],
+          "tasks": ["native-setup"]
+        }
+      ]
+    },
+    {
+      "id": "phase-1",
+      "name": "MVP Core",
+      "description": "핵심 기능 구현 (인증, 책장, 폰잠금 독서)",
+      "weeks": [3, 4, 5, 6, 7, 8],
+      "parallel_execution": [
+        {
+          "group": "infra",
+          "agents": ["agent-infra"],
+          "tasks": ["infra-ecs", "infra-cicd"]
+        },
+        {
+          "group": "backend",
+          "agents": ["agent-backend-core"],
+          "tasks": ["backend-auth", "backend-user", "backend-book"]
+        },
+        {
+          "group": "frontend",
+          "agents": ["agent-flutter-core", "agent-flutter-feature"],
+          "tasks": ["flutter-auth", "flutter-router", "flutter-library", "flutter-reading"]
+        },
+        {
+          "group": "native",
+          "agents": ["agent-native"],
+          "tasks": ["native-android", "native-ios"]
+        },
+        {
+          "group": "test",
+          "agents": ["agent-test"],
+          "tasks": ["test-backend-unit", "test-flutter-unit"]
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Beta Features",
+      "description": "커뮤니티, 서점 지도, 통계",
+      "weeks": [9, 10, 11, 12],
+      "parallel_execution": [
+        {
+          "group": "infra",
+          "agents": ["agent-infra"],
+          "tasks": ["infra-monitoring", "infra-cdn"]
+        },
+        {
+          "group": "backend",
+          "agents": ["agent-backend-domain"],
+          "tasks": ["backend-community", "backend-map"]
+        },
+        {
+          "group": "frontend",
+          "agents": ["agent-flutter-core", "agent-flutter-feature"],
+          "tasks": ["flutter-stats", "flutter-community", "flutter-map"]
+        },
+        {
+          "group": "test",
+          "agents": ["agent-test"],
+          "tasks": ["test-backend-integration", "test-e2e"]
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "1.0 Release",
+      "description": "AI 추천, 결제, 알림",
+      "weeks": [13, 14, 15, 16],
+      "parallel_execution": [
+        {
+          "group": "backend",
+          "agents": ["agent-backend-domain", "agent-backend-support"],
+          "tasks": ["backend-ai", "backend-notification", "backend-subscription"]
+        },
+        {
+          "group": "frontend",
+          "agents": ["agent-flutter-premium"],
+          "tasks": ["flutter-ai", "flutter-payment"]
+        },
+        {
+          "group": "test",
+          "agents": ["agent-test"],
+          "tasks": ["test-performance"]
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "2.0 Features",
+      "description": "게이미피케이션, DR",
+      "weeks": [17, 18],
+      "parallel_execution": [
+        {
+          "group": "infra",
+          "agents": ["agent-infra"],
+          "tasks": ["infra-dr"]
+        },
+        {
+          "group": "backend",
+          "agents": ["agent-backend-support"],
+          "tasks": ["backend-gamification"]
+        },
+        {
+          "group": "frontend",
+          "agents": ["agent-flutter-premium"],
+          "tasks": ["flutter-gamification"]
+        }
+      ]
+    }
+  ],
+
+  "verification": {
+    "checkpoints": [
+      {
+        "phase": "phase-0",
+        "checks": [
+          "terraform plan 성공",
+          "데이터베이스 연결 테스트",
+          "Flutter 프로젝트 빌드 성공"
+        ]
+      },
+      {
+        "phase": "phase-1",
+        "checks": [
+          "Auth API 테스트 통과",
+          "책장 CRUD 테스트 통과",
+          "폰잠금 기능 동작 확인",
+          "Unit 테스트 커버리지 80%+"
+        ]
+      },
+      {
+        "phase": "phase-2",
+        "checks": [
+          "커뮤니티 피드 로딩 테스트",
+          "지도 검색 기능 테스트",
+          "E2E 테스트 10개 시나리오 통과"
+        ]
+      },
+      {
+        "phase": "phase-3",
+        "checks": [
+          "AI 추천 응답 시간 < 500ms",
+          "결제 플로우 테스트 통과",
+          "부하 테스트 1000 RPS 처리"
+        ]
+      },
+      {
+        "phase": "phase-4",
+        "checks": [
+          "게이미피케이션 보상 지급 테스트",
+          "DR 페일오버 테스트",
+          "전체 회귀 테스트 통과"
+        ]
+      }
+    ]
+  }
+}
