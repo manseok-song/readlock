@@ -2,6 +2,88 @@
 
 모든 주요 변경 사항이 이 파일에 기록됩니다.
 
+## [2.0.2] - 2026-01-23
+
+### 픽셀아트 아바타 & 방 꾸미기 기능 구현
+
+사용자가 픽셀아트 스타일의 아바타를 꾸미고, 방에 가구를 배치하며, 책장에 읽은 책을 진열할 수 있는 기능을 추가했습니다.
+
+#### 백엔드 변경사항
+
+##### 새로운 모델 (gamification 서비스)
+- `UserAvatarConfig`: 사용자 아바타 설정 (얼굴, 머리, 의상, 액세서리, 스킨 컬러)
+- `UserRoomLayout`: 사용자 방 레이아웃 (배경, 가구 배치, 책장 책)
+
+##### 새로운 API 라우트
+- `GET /v1/avatar/config` - 아바타 설정 조회
+- `PUT /v1/avatar/config` - 아바타 설정 업데이트
+- `GET /v1/room/layout` - 방 레이아웃 조회
+- `PUT /v1/room/layout` - 방 레이아웃 업데이트
+- `PUT /v1/room/bookshelf` - 책장 책 업데이트
+- `POST /v1/shop/seed-pixel-items` - 픽셀아트 샵 아이템 시드
+- `POST /v1/books/seed-sample-books` - 해밀누리 출판사 샘플 책 시드
+
+##### 버그 수정
+- **FK 제약조건 충돌 해결**: gamification 모델에서 `ForeignKey("users.id")` 제거
+  - 마이크로서비스 아키텍처에서 users 테이블은 user 서비스 DB에 있어 FK 참조 불가
+  - 영향 받은 모델: UserBadge, UserLevel, ExpHistory, UserInventory, UserCoins, CoinTransaction, UserAvatarConfig, UserRoomLayout
+
+##### 인프라
+- `backend/nginx/nginx.conf`: API Gateway nginx 설정 추가
+
+#### Flutter 변경사항
+
+##### 새로운 파일
+- `lib/domain/entities/avatar.dart`: 아바타 관련 Entity
+- `lib/domain/entities/room.dart`: 방 관련 Entity
+- `lib/presentation/providers/avatar_room_provider.dart`: 아바타/방 상태 관리
+- `lib/presentation/widgets/pixel_art/pixel_avatar_widget.dart`: 픽셀아트 아바타 렌더링
+- `lib/presentation/widgets/pixel_art/pixel_room_widget.dart`: 픽셀아트 방 렌더링
+- `lib/presentation/widgets/pixel_art/pixel_bookshelf_widget.dart`: 픽셀아트 책장 렌더링
+
+##### 수정된 파일
+- `lib/core/constants/api_endpoints.dart`:
+  - `kIsWeb` 플랫폼 감지 추가
+  - 웹: `localhost:8080/v1`, 모바일: `10.0.2.2:8080/v1` 자동 설정
+- `lib/presentation/screens/profile/avatar_screen.dart`: 픽셀아트 UI로 전면 개편
+- `lib/presentation/screens/profile/my_room_screen.dart`: 픽셀아트 UI로 전면 개편
+
+#### 시드 데이터
+
+##### 아바타 아이템 (18개)
+| 카테고리 | 아이템 수 | 설명 |
+|---------|----------|------|
+| face | 4개 | 기본/동그란/각진/부드러운 얼굴 |
+| hair | 6개 | 단발/긴생머리/웨이브/포니테일/숏컷/댄디컷 |
+| outfit | 5개 | 티셔츠/후드티/스웨터/셔츠/가디건 |
+| accessory | 4개 | 없음/둥근안경/네모안경/헤드폰 |
+
+##### 방 아이템 (11개)
+| 카테고리 | 아이템 수 | 설명 |
+|---------|----------|------|
+| background | 4개 | 서재/스튜디오/카페/다락방 |
+| furniture | 4개 | 책장/책상/의자/조명 |
+| decoration | 3개 | 화분/액자/러그 |
+
+##### 해밀누리 샘플 책 (6권)
+- 도구라 마구라 1, 2 (유메노 규사쿠)
+- 백야 (도스토옙스키)
+- 겨울밤에 읽는 일본 문학 단편선
+- 소녀지옥 (유메노 규사쿠)
+- 걷기의 철학 (헨리 데이비드 소로)
+
+#### 웹 UI 테스트 결과 (15/15 통과)
+
+| 카테고리 | 테스트 항목 | 결과 |
+|---------|------------|------|
+| Auth | 로그인/로그아웃 | ✅ |
+| Home | 페이지 로드, 통계, 현재 책 | ✅ |
+| Library | 페이지 로드, 책 목록, 검색 | ✅ |
+| Community | 피드, 인용구 | ✅ |
+| Profile | 페이지 로드, 사용자 정보 | ✅ |
+
+---
+
 ## [2.0.1] - 2026-01-22
 
 ### Flutter 웹 빌드 완성
