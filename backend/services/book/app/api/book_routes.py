@@ -166,3 +166,89 @@ async def remove_book_from_library(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User book not found",
         )
+
+
+@router.post("/seed-sample-books", response_model=dict)
+async def seed_sample_books(
+    book_service: BookService = Depends(get_book_service),
+):
+    """
+    Create sample books for testing (development only)
+    해밀누리 출판사 책들
+    """
+    sample_books = [
+        {
+            "isbn": "9791198682116",
+            "title": "도구라 마구라 1",
+            "author": "유메노 규사쿠",
+            "publisher": "해밀누리",
+            "description": "일본 3대 기서 중 하나로 꼽히는 미스터리 소설의 걸작. 정신병원을 배경으로 펼쳐지는 미궁 속의 이야기.",
+            "cover_image": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791198682116.jpg",
+            "category": "일본소설",
+            "page_count": 400,
+        },
+        {
+            "isbn": "9791198682123",
+            "title": "도구라 마구라 2",
+            "author": "유메노 규사쿠",
+            "publisher": "해밀누리",
+            "description": "일본 3대 기서 도구라 마구라의 두 번째 권. 충격적인 결말을 향해 달려가는 광기의 서사.",
+            "cover_image": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791198682123.jpg",
+            "category": "일본소설",
+            "page_count": 420,
+        },
+        {
+            "isbn": "9791198682109",
+            "title": "백야",
+            "author": "표도르 도스토옙스키",
+            "publisher": "해밀누리",
+            "description": "도스토옙스키의 초기 작품. 백야의 밤을 배경으로 한 순수하고 슬픈 사랑 이야기.",
+            "cover_image": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791198682109.jpg",
+            "category": "러시아소설",
+            "page_count": 200,
+        },
+        {
+            "isbn": "9791198682130",
+            "title": "겨울밤에 읽는 일본 문학 단편선",
+            "author": "다자이 오사무, 미야자와 겐지, 아쿠타가와 류노스케",
+            "publisher": "해밀누리",
+            "description": "일본 근대 문학의 거장들이 남긴 주옥같은 단편들을 모은 앤솔러지.",
+            "cover_image": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791198682130.jpg",
+            "category": "일본소설",
+            "page_count": 280,
+        },
+        {
+            "isbn": "9791198682147",
+            "title": "소녀지옥",
+            "author": "유메노 규사쿠",
+            "publisher": "해밀누리",
+            "description": "유메노 규사쿠의 기묘하고 섬뜩한 단편집. 소녀들의 어두운 내면을 그린 작품.",
+            "cover_image": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791198682147.jpg",
+            "category": "일본소설",
+            "page_count": 240,
+        },
+        {
+            "isbn": "9791198682154",
+            "title": "걷기의 철학",
+            "author": "헨리 데이비드 소로",
+            "publisher": "해밀누리",
+            "description": "월든의 저자 소로가 걷기를 통해 발견한 삶의 지혜와 자연에 대한 명상.",
+            "cover_image": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791198682154.jpg",
+            "category": "에세이",
+            "page_count": 160,
+        },
+    ]
+
+    created_books = []
+    for book_data in sample_books:
+        try:
+            book = await book_service.create_book(book_data)
+            created_books.append(book)
+        except Exception as e:
+            # Book might already exist
+            pass
+
+    return {
+        "message": f"Created {len(created_books)} sample books",
+        "books": created_books,
+    }

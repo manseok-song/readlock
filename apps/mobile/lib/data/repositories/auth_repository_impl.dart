@@ -65,9 +65,16 @@ class AuthRepositoryImpl implements AuthRepository {
       final tokensData = data['tokens'] ?? data;
       final userData = data['user'];
 
+      final accessToken = tokensData['accessToken'] ?? tokensData['access_token'];
+      final refreshToken = tokensData['refreshToken'] ?? tokensData['refresh_token'];
+
+      if (accessToken == null || refreshToken == null) {
+        return const Left(AuthFailure.unknown('Invalid server response: missing tokens'));
+      }
+
       final tokens = AuthTokens(
-        accessToken: tokensData['accessToken'] ?? tokensData['access_token'],
-        refreshToken: tokensData['refreshToken'] ?? tokensData['refresh_token'],
+        accessToken: accessToken,
+        refreshToken: refreshToken,
         expiresIn: tokensData['expiresIn'] ?? tokensData['expires_in'] ?? 1800,
       );
 
@@ -110,9 +117,16 @@ class AuthRepositoryImpl implements AuthRepository {
       final tokensData = data['tokens'] ?? data;
       final userData = data['user'];
 
+      final accessToken = tokensData['accessToken'] ?? tokensData['access_token'];
+      final refreshToken = tokensData['refreshToken'] ?? tokensData['refresh_token'];
+
+      if (accessToken == null || refreshToken == null) {
+        return const Left(AuthFailure.unknown('Invalid server response: missing tokens'));
+      }
+
       final tokens = AuthTokens(
-        accessToken: tokensData['accessToken'] ?? tokensData['access_token'],
-        refreshToken: tokensData['refreshToken'] ?? tokensData['refresh_token'],
+        accessToken: accessToken,
+        refreshToken: refreshToken,
         expiresIn: tokensData['expiresIn'] ?? tokensData['expires_in'] ?? 1800,
       );
 
@@ -154,9 +168,16 @@ class AuthRepositoryImpl implements AuthRepository {
       final tokensData = data['tokens'] ?? data;
       final userData = data['user'];
 
+      final accessToken = tokensData['accessToken'] ?? tokensData['access_token'];
+      final refreshToken = tokensData['refreshToken'] ?? tokensData['refresh_token'];
+
+      if (accessToken == null || refreshToken == null) {
+        return const Left(AuthFailure.unknown('Invalid server response: missing tokens'));
+      }
+
       final tokens = AuthTokens(
-        accessToken: tokensData['accessToken'] ?? tokensData['access_token'],
-        refreshToken: tokensData['refreshToken'] ?? tokensData['refresh_token'],
+        accessToken: accessToken,
+        refreshToken: refreshToken,
         expiresIn: tokensData['expiresIn'] ?? tokensData['expires_in'] ?? 1800,
       );
 
@@ -209,9 +230,16 @@ class AuthRepositoryImpl implements AuthRepository {
       final tokensData = data['tokens'] ?? data;
       final userData = data['user'];
 
+      final accessToken = tokensData['accessToken'] ?? tokensData['access_token'];
+      final refreshToken = tokensData['refreshToken'] ?? tokensData['refresh_token'];
+
+      if (accessToken == null || refreshToken == null) {
+        return const Left(AuthFailure.unknown('Invalid server response: missing tokens'));
+      }
+
       final tokens = AuthTokens(
-        accessToken: tokensData['accessToken'] ?? tokensData['access_token'],
-        refreshToken: tokensData['refreshToken'] ?? tokensData['refresh_token'],
+        accessToken: accessToken,
+        refreshToken: refreshToken,
         expiresIn: tokensData['expiresIn'] ?? tokensData['expires_in'] ?? 1800,
       );
 

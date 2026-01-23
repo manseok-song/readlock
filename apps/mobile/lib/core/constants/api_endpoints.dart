@@ -1,14 +1,34 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// API endpoint constants
 class ApiEndpoints {
   ApiEndpoints._();
 
   // Base URL - configure based on environment
-  // 로컬 개발: http://localhost:8000/v1
+  // 빌드 시 --dart-define=API_BASE_URL=https://api.readlock.app/v1 로 설정
+  // 로컬 개발: http://localhost:8080/v1 (API Gateway)
   // 프로덕션: https://api.readlock.app/v1
-  static const String baseUrl = String.fromEnvironment(
+  //
+  // WARNING: Production builds MUST set API_BASE_URL environment variable
+  // Example: flutter build apk --dart-define=API_BASE_URL=https://api.readlock.app/v1
+  static const String _envBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8000/v1',
+    defaultValue: '',
   );
+
+  // Auto-detect platform for local development
+  // Web: localhost:8080
+  // iOS Simulator: localhost:8080
+  // Android Emulator: 10.0.2.2:8080
+  static String get baseUrl {
+    if (_envBaseUrl.isNotEmpty) {
+      return _envBaseUrl;
+    }
+    // Default based on platform
+    return kIsWeb
+        ? 'http://localhost:8080/v1'
+        : 'http://10.0.2.2:8080/v1'; // Android emulator localhost
+  }
 
   // Auth endpoints
   static const String authRegister = '/auth/register';

@@ -35,7 +35,7 @@ app.add_middleware(
     requests_per_minute=settings.RATE_LIMIT_PER_MINUTE,
     burst_size=settings.RATE_LIMIT_BURST,
 )
-app.include_router(router, prefix="/api/v1")
+app.include_router(router, prefix=settings.API_PREFIX)
 
 
 @app.get("/health")

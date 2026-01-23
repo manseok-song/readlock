@@ -43,7 +43,7 @@ app.add_middleware(
 )
 
 # Routes
-app.include_router(router, prefix="/api/v1")
+app.include_router(router, prefix=settings.API_PREFIX)
 
 
 @app.get("/health")

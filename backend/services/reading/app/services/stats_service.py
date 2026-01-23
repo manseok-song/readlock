@@ -51,17 +51,17 @@ class StatsService:
             # Get aggregated stats - join with user_books to filter by user_id
             result = await session.execute(
                 select(
-                    func.sum(ReadingSession.duration_sec).label("total_time"),
-                    func.sum(ReadingSession.pages_read).label("total_pages"),
+                    func.sum(ReadingSession.duration).label("total_time"),
+                    func.sum(ReadingSession.end_page - ReadingSession.start_page).label("total_pages"),
                     func.count(ReadingSession.id).label("session_count"),
-                    func.avg(ReadingSession.duration_sec).label("avg_duration"),
+                    func.avg(ReadingSession.duration).label("avg_duration"),
                 ).select_from(ReadingSession).join(
                     UserBook, ReadingSession.user_book_id == UserBook.id
                 ).where(
                     UserBook.user_id == user_id,
-                    ReadingSession.ended_at.isnot(None),
-                    ReadingSession.started_at >= start,
-                    ReadingSession.started_at <= end,
+                    ReadingSession.end_time.isnot(None),
+                    ReadingSession.start_time >= start,
+                    ReadingSession.start_time <= end,
                 )
             )
             row = result.first()
@@ -73,15 +73,15 @@ class StatsService:
 
             # Get unique reading days
             days_result = await session.execute(
-                select(func.count(func.distinct(func.date(ReadingSession.started_at)))).select_from(
+                select(func.count(func.distinct(func.date(ReadingSession.start_time)))).select_from(
                     ReadingSession
                 ).join(
                     UserBook, ReadingSession.user_book_id == UserBook.id
                 ).where(
                     UserBook.user_id == user_id,
-                    ReadingSession.ended_at.isnot(None),
-                    ReadingSession.started_at >= start,
-                    ReadingSession.started_at <= end,
+                    ReadingSession.end_time.isnot(None),
+                    ReadingSession.start_time >= start,
+                    ReadingSession.start_time <= end,
                 )
             )
             reading_days = days_result.scalar() or 0
@@ -94,9 +94,9 @@ class StatsService:
                     UserBook, ReadingSession.user_book_id == UserBook.id
                 ).where(
                     UserBook.user_id == user_id,
-                    ReadingSession.ended_at.isnot(None),
-                    ReadingSession.started_at >= start,
-                    ReadingSession.started_at <= end,
+                    ReadingSession.end_time.isnot(None),
+                    ReadingSession.start_time >= start,
+                    ReadingSession.start_time <= end,
                 )
             )
             total_books = books_result.scalar() or 0
@@ -120,14 +120,14 @@ class StatsService:
             # Total stats
             result = await session.execute(
                 select(
-                    func.sum(ReadingSession.duration_sec).label("total_time"),
-                    func.sum(ReadingSession.pages_read).label("total_pages"),
-                    func.min(ReadingSession.started_at).label("first_reading"),
+                    func.sum(ReadingSession.duration).label("total_time"),
+                    func.sum(ReadingSession.end_page - ReadingSession.start_page).label("total_pages"),
+                    func.min(ReadingSession.start_time).label("first_reading"),
                 ).select_from(ReadingSession).join(
                     UserBook, ReadingSession.user_book_id == UserBook.id
                 ).where(
                     UserBook.user_id == user_id,
-                    ReadingSession.ended_at.isnot(None),
+                    ReadingSession.end_time.isnot(None),
                 )
             )
             row = result.first()
@@ -216,20 +216,20 @@ class StatsService:
             # Get daily aggregates
             result = await session.execute(
                 select(
-                    func.date(ReadingSession.started_at).label("date"),
-                    func.sum(ReadingSession.duration_sec).label("duration"),
-                    func.sum(ReadingSession.pages_read).label("pages"),
+                    func.date(ReadingSession.start_time).label("date"),
+                    func.sum(ReadingSession.duration).label("duration"),
+                    func.sum(ReadingSession.end_page - ReadingSession.start_page).label("pages"),
                     func.count(ReadingSession.id).label("sessions"),
                 ).select_from(ReadingSession).join(
                     UserBook, ReadingSession.user_book_id == UserBook.id
                 ).where(
                     UserBook.user_id == user_id,
-                    ReadingSession.ended_at.isnot(None),
-                    ReadingSession.started_at >= start_date,
+                    ReadingSession.end_time.isnot(None),
+                    ReadingSession.start_time >= start_date,
                 ).group_by(
-                    func.date(ReadingSession.started_at)
+                    func.date(ReadingSession.start_time)
                 ).order_by(
-                    func.date(ReadingSession.started_at)
+                    func.date(ReadingSession.start_time)
                 )
             )
 
@@ -266,15 +266,15 @@ class StatsService:
         async with get_db_session() as session:
             result = await session.execute(
                 select(
-                    func.extract("hour", ReadingSession.started_at).label("hour"),
+                    func.extract("hour", ReadingSession.start_time).label("hour"),
                     func.count(ReadingSession.id).label("count"),
                 ).select_from(ReadingSession).join(
                     UserBook, ReadingSession.user_book_id == UserBook.id
                 ).where(
                     UserBook.user_id == user_id,
-                    ReadingSession.ended_at.isnot(None),
+                    ReadingSession.end_time.isnot(None),
                 ).group_by(
-                    func.extract("hour", ReadingSession.started_at)
+                    func.extract("hour", ReadingSession.start_time)
                 ).order_by(
                     func.count(ReadingSession.id).desc()
                 ).limit(1)

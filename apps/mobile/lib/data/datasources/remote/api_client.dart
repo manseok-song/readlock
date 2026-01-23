@@ -33,6 +33,7 @@ class AuthInterceptor extends Interceptor {
   final Ref ref;
   final _storage = const FlutterSecureStorage();
   bool _isRefreshing = false;
+  List<ErrorInterceptorHandler> _pendingRequests = [];
 
   AuthInterceptor(this.ref);
 
@@ -63,7 +64,13 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401 && !_isRefreshing) {
+    if (err.response?.statusCode == 401) {
+      // If already refreshing, queue this request
+      if (_isRefreshing) {
+        _pendingRequests.add(handler);
+        return;
+      }
+
       _isRefreshing = true;
 
       try {
@@ -71,16 +78,29 @@ class AuthInterceptor extends Interceptor {
         if (refreshed) {
           // Retry original request with new token
           final response = await _retry(err.requestOptions);
+
+          // Process all pending requests
+          for (final pendingHandler in _pendingRequests) {
+            pendingHandler.next(err);
+          }
+          _pendingRequests.clear();
           _isRefreshing = false;
+
           return handler.resolve(response);
+        } else {
+          // Refresh failed, clear tokens
+          await _clearTokens();
         }
       } catch (e) {
-        _isRefreshing = false;
-        // Clear tokens and redirect to login
+        // Clear tokens and reject all pending requests
         await _clearTokens();
+        for (final pendingHandler in _pendingRequests) {
+          pendingHandler.next(err);
+        }
+        _pendingRequests.clear();
+      } finally {
+        _isRefreshing = false;
       }
-
-      _isRefreshing = false;
     }
 
     handler.next(err);
@@ -96,16 +116,43 @@ class AuthInterceptor extends Interceptor {
         'refreshToken': refreshToken,
       });
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final tokens = response.data['data']['tokens'];
+      if (response.statusCode == 200) {
+        // Handle multiple response structures
+        final data = response.data;
+        Map<String, dynamic>? tokens;
+
+        // Try different response structures
+        if (data['data']?['tokens'] != null) {
+          tokens = data['data']['tokens'];
+        } else if (data['tokens'] != null) {
+          tokens = data['tokens'];
+        } else if (data['accessToken'] != null || data['access_token'] != null) {
+          tokens = data;
+        }
+
+        if (tokens == null) {
+          Logger().e('Token refresh: Invalid response structure');
+          return false;
+        }
+
+        final accessToken = tokens['accessToken'] ?? tokens['access_token'];
+        final newRefreshToken = tokens['refreshToken'] ?? tokens['refresh_token'];
+
+        if (accessToken == null) {
+          Logger().e('Token refresh: Missing access token in response');
+          return false;
+        }
+
         await _storage.write(
           key: StorageKeys.accessToken,
-          value: tokens['accessToken'],
+          value: accessToken,
         );
-        await _storage.write(
-          key: StorageKeys.refreshToken,
-          value: tokens['refreshToken'],
-        );
+        if (newRefreshToken != null) {
+          await _storage.write(
+            key: StorageKeys.refreshToken,
+            value: newRefreshToken,
+          );
+        }
         return true;
       }
     } catch (e) {

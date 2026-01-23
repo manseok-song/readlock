@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/book.dart';
 import '../../data/repositories/book_repository_impl.dart';
+import '../../data/datasources/remote/api_client.dart';
+import '../../data/datasources/local/book_local_datasource.dart';
 
 /// Search query state
 class BookSearchState {
@@ -335,25 +337,45 @@ class UserLibraryNotifier extends StateNotifier<UserLibraryState> {
   }
 }
 
+/// Book local datasource provider
+final bookLocalDatasourceProvider = Provider<BookLocalDatasource>((ref) {
+  return BookLocalDatasource();
+});
+
+/// Book repository provider
+final bookRepositoryProvider = Provider<BookRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  final localDatasource = ref.watch(bookLocalDatasourceProvider);
+  return BookRepositoryImpl(
+    apiClient: apiClient,
+    localDatasource: localDatasource,
+  );
+});
+
 /// Providers
 final bookSearchProvider = StateNotifierProvider<BookSearchNotifier, BookSearchState>((ref) {
-  // TODO: Get proper repository instance
-  throw UnimplementedError('Provider not properly initialized');
+  final repository = ref.watch(bookRepositoryProvider);
+  return BookSearchNotifier(repository: repository);
 });
 
 final userLibraryProvider = StateNotifierProvider<UserLibraryNotifier, UserLibraryState>((ref) {
-  // TODO: Get proper repository instance
-  throw UnimplementedError('Provider not properly initialized');
+  final repository = ref.watch(bookRepositoryProvider);
+  return UserLibraryNotifier(repository: repository);
 });
 
 /// Single book detail provider
 final bookDetailProvider = FutureProvider.family<Book?, String>((ref, bookId) async {
-  // TODO: Implement book detail fetching
-  return null;
+  final repository = ref.watch(bookRepositoryProvider);
+  final result = await repository.getBookDetail(bookId);
+  return result.fold((_) => null, (book) => book);
 });
 
 /// User book by ID provider
 final userBookProvider = FutureProvider.family<UserBook?, String>((ref, userBookId) async {
-  // TODO: Implement user book fetching
-  return null;
+  // Get from user library state
+  final libraryState = ref.watch(userLibraryProvider);
+  return libraryState.books.cast<UserBook?>().firstWhere(
+    (book) => book?.id == userBookId,
+    orElse: () => null,
+  );
 });

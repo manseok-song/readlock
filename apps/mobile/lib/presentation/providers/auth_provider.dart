@@ -96,14 +96,17 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
     required String email,
     required String password,
   }) async {
-    state = AsyncValue.data(state.value!.copyWith(isLoading: true, error: null));
+    final currentState = state.value;
+    if (currentState == null) return false;
+
+    state = AsyncValue.data(currentState.copyWith(isLoading: true, error: null));
 
     final repository = ref.read(authRepositoryProvider);
     final result = await repository.login(email: email, password: password);
 
-    return result.fold(
+    return await result.fold(
       (failure) {
-        state = AsyncValue.data(state.value!.copyWith(
+        state = AsyncValue.data(currentState.copyWith(
           isLoading: false,
           error: failure.message,
         ));
@@ -127,7 +130,10 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
     required String password,
     required String nickname,
   }) async {
-    state = AsyncValue.data(state.value!.copyWith(isLoading: true, error: null));
+    final currentState = state.value;
+    if (currentState == null) return false;
+
+    state = AsyncValue.data(currentState.copyWith(isLoading: true, error: null));
 
     final repository = ref.read(authRepositoryProvider);
     final result = await repository.register(
@@ -136,9 +142,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
       nickname: nickname,
     );
 
-    return result.fold(
+    return await result.fold(
       (failure) {
-        state = AsyncValue.data(state.value!.copyWith(
+        state = AsyncValue.data(currentState.copyWith(
           isLoading: false,
           error: failure.message,
         ));
@@ -158,7 +164,10 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
 
   /// Social login
   Future<bool> socialLogin(String provider, String idToken) async {
-    state = AsyncValue.data(state.value!.copyWith(isLoading: true, error: null));
+    final currentState = state.value;
+    if (currentState == null) return false;
+
+    state = AsyncValue.data(currentState.copyWith(isLoading: true, error: null));
 
     final repository = ref.read(authRepositoryProvider);
     final result = await repository.socialLogin(
@@ -166,9 +175,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
       accessToken: idToken,
     );
 
-    return result.fold(
+    return await result.fold(
       (failure) {
-        state = AsyncValue.data(state.value!.copyWith(
+        state = AsyncValue.data(currentState.copyWith(
           isLoading: false,
           error: failure.message,
         ));

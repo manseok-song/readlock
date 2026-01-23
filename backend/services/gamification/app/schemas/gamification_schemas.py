@@ -63,6 +63,7 @@ class ShopItemResponse(BaseModel):
     price_coins: int
     price_real: Optional[float] = None
     preview_url: str
+    asset_data: Optional[dict] = None
     is_limited: bool = False
     available_until: Optional[datetime] = None
     required_level: int = 1
@@ -112,3 +113,52 @@ class LeaderboardResponse(BaseModel):
     user_rank: Optional[int] = None
     user_score: Optional[int] = None
     total_participants: int
+
+
+# Avatar schemas
+class AvatarConfigResponse(BaseModel):
+    id: Optional[str] = None
+    user_id: str
+    face_item_id: Optional[str] = None
+    hair_item_id: Optional[str] = None
+    outfit_item_id: Optional[str] = None
+    accessory_item_id: Optional[str] = None
+    skin_color: str = "#FFD5B8"
+    face_item: Optional[ShopItemResponse] = None
+    hair_item: Optional[ShopItemResponse] = None
+    outfit_item: Optional[ShopItemResponse] = None
+    accessory_item: Optional[ShopItemResponse] = None
+
+
+class AvatarConfigUpdateRequest(BaseModel):
+    face_item_id: Optional[str] = None
+    hair_item_id: Optional[str] = None
+    outfit_item_id: Optional[str] = None
+    accessory_item_id: Optional[str] = None
+    skin_color: Optional[str] = None
+
+
+# Room schemas
+class FurniturePosition(BaseModel):
+    x: float
+    y: float
+    rotation: float = 0
+
+
+class RoomLayoutResponse(BaseModel):
+    id: Optional[str] = None
+    user_id: str
+    background_item_id: Optional[str] = None
+    background_item: Optional[ShopItemResponse] = None
+    layout_data: dict = {}
+    furniture_items: List[ShopItemResponse] = []
+    bookshelf_books: List[str] = []
+
+
+class RoomLayoutUpdateRequest(BaseModel):
+    background_item_id: Optional[str] = None
+    layout_data: Optional[dict] = None
+
+
+class BookshelfUpdateRequest(BaseModel):
+    book_ids: List[str]
