@@ -27,6 +27,8 @@ RUN pip install --no-cache-dir -e .
 # Streamlit 추가 설치 (dashboard용) + gdown (Google Drive 다운로드)
 RUN pip install --no-cache-dir streamlit plotly yt-dlp gdown google-cloud-storage
 
+# Python 출력 버퍼링 비활성화 (로그 실시간 출력)
+ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 EXPOSE 8080
 
