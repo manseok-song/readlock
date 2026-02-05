@@ -45,18 +45,28 @@ class GCSHelper:
         """Cloud Run 서비스 계정 이메일 가져오기"""
         if self._service_account_email is None:
             try:
-                # Google Cloud 환경에서 서비스 계정 이메일 가져오기
-                credentials, project = google.auth.default()
-                if hasattr(credentials, 'service_account_email'):
-                    self._service_account_email = credentials.service_account_email
-                else:
-                    # Compute Engine 환경에서 메타데이터 서버 사용
-                    auth_req = requests.Request()
-                    credentials.refresh(auth_req)
-                    if hasattr(credentials, 'service_account_email'):
-                        self._service_account_email = credentials.service_account_email
+                # 방법 1: 메타데이터 서버에서 직접 가져오기 (Cloud Run/GCE)
+                import urllib.request
+                metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email"
+                req = urllib.request.Request(
+                    metadata_url,
+                    headers={"Metadata-Flavor": "Google"}
+                )
+                with urllib.request.urlopen(req, timeout=2) as response:
+                    self._service_account_email = response.read().decode('utf-8')
+                    print(f"[GCS] 서비스 계정 이메일 (메타데이터): {self._service_account_email}")
             except Exception as e:
-                print(f"[GCS] 서비스 계정 이메일 가져오기 실패: {e}")
+                print(f"[GCS] 메타데이터 서버 접근 실패: {e}")
+                # 방법 2: credentials에서 가져오기 시도
+                try:
+                    credentials, project = google.auth.default()
+                    if hasattr(credentials, 'service_account_email'):
+                        email = credentials.service_account_email
+                        if email and email != "default":
+                            self._service_account_email = email
+                            print(f"[GCS] 서비스 계정 이메일 (credentials): {self._service_account_email}")
+                except Exception as e2:
+                    print(f"[GCS] 서비스 계정 이메일 가져오기 실패: {e2}")
         return self._service_account_email
 
     def upload_file(
