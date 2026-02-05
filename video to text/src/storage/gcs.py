@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Tuple
 
+import google.auth
+from google.auth import compute_engine
+from google.auth.transport import requests
 from google.cloud import storage
 from google.cloud.exceptions import NotFound
 
@@ -21,6 +24,7 @@ class GCSHelper:
         self.bucket_name = bucket_name
         self._client: Optional[storage.Client] = None
         self._bucket: Optional[storage.Bucket] = None
+        self._service_account_email: Optional[str] = None
 
     @property
     def client(self) -> storage.Client:
@@ -35,6 +39,25 @@ class GCSHelper:
         if self._bucket is None:
             self._bucket = self.client.bucket(self.bucket_name)
         return self._bucket
+
+    @property
+    def service_account_email(self) -> Optional[str]:
+        """Cloud Run 서비스 계정 이메일 가져오기"""
+        if self._service_account_email is None:
+            try:
+                # Google Cloud 환경에서 서비스 계정 이메일 가져오기
+                credentials, project = google.auth.default()
+                if hasattr(credentials, 'service_account_email'):
+                    self._service_account_email = credentials.service_account_email
+                else:
+                    # Compute Engine 환경에서 메타데이터 서버 사용
+                    auth_req = requests.Request()
+                    credentials.refresh(auth_req)
+                    if hasattr(credentials, 'service_account_email'):
+                        self._service_account_email = credentials.service_account_email
+            except Exception as e:
+                print(f"[GCS] 서비스 계정 이메일 가져오기 실패: {e}")
+        return self._service_account_email
 
     def upload_file(
         self,
@@ -119,6 +142,8 @@ class GCSHelper:
         """
         서명된 다운로드 URL 생성 (시간 제한 접근)
 
+        Cloud Run에서는 IAM 기반 서명을 사용합니다.
+
         Args:
             blob_name: 블롭 이름
             expiration_hours: URL 만료 시간 (시간 단위)
@@ -127,11 +152,26 @@ class GCSHelper:
             서명된 URL
         """
         blob = self.bucket.blob(blob_name)
-        url = blob.generate_signed_url(
-            version="v4",
-            expiration=timedelta(hours=expiration_hours),
-            method="GET"
-        )
+
+        # Cloud Run/Compute Engine 환경에서 IAM 서명 사용
+        sa_email = self.service_account_email
+
+        if sa_email:
+            # IAM 기반 서명 (Cloud Run용)
+            url = blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(hours=expiration_hours),
+                method="GET",
+                service_account_email=sa_email,
+                access_token=self._get_access_token(),
+            )
+        else:
+            # 로컬 환경 (서비스 계정 키 사용)
+            url = blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(hours=expiration_hours),
+                method="GET"
+            )
         return url
 
     def generate_upload_signed_url(
@@ -143,6 +183,8 @@ class GCSHelper:
         """
         서명된 업로드 URL 생성 (클라이언트 직접 업로드용)
 
+        Cloud Run에서는 IAM 기반 서명을 사용합니다.
+
         Args:
             blob_name: 저장될 블롭 이름
             content_type: 파일 MIME 타입
@@ -152,18 +194,46 @@ class GCSHelper:
             dict: {upload_url, gs_uri, blob_name}
         """
         blob = self.bucket.blob(blob_name)
-        url = blob.generate_signed_url(
-            version="v4",
-            expiration=timedelta(minutes=expiration_minutes),
-            method="PUT",
-            content_type=content_type,
-        )
+
+        # Cloud Run/Compute Engine 환경에서 IAM 서명 사용
+        sa_email = self.service_account_email
+
+        if sa_email:
+            # IAM 기반 서명 (Cloud Run용)
+            url = blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(minutes=expiration_minutes),
+                method="PUT",
+                content_type=content_type,
+                service_account_email=sa_email,
+                access_token=self._get_access_token(),
+            )
+        else:
+            # 로컬 환경 (서비스 계정 키 사용)
+            url = blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(minutes=expiration_minutes),
+                method="PUT",
+                content_type=content_type,
+            )
+
         return {
             "upload_url": url,
             "gs_uri": f"gs://{self.bucket_name}/{blob_name}",
             "blob_name": blob_name,
             "content_type": content_type,
         }
+
+    def _get_access_token(self) -> Optional[str]:
+        """현재 자격증명의 액세스 토큰 가져오기"""
+        try:
+            credentials, _ = google.auth.default()
+            auth_req = requests.Request()
+            credentials.refresh(auth_req)
+            return credentials.token
+        except Exception as e:
+            print(f"[GCS] 액세스 토큰 가져오기 실패: {e}")
+            return None
 
     def download_file(
         self,
