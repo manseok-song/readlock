@@ -75,6 +75,8 @@ def render_client_direct_upload() -> Optional[str]:
     # 세션 상태 초기화
     if "client_upload_gs_uri" not in st.session_state:
         st.session_state.client_upload_gs_uri = None
+    if "client_upload_signed_urls" not in st.session_state:
+        st.session_state.client_upload_signed_urls = None
 
     st.markdown("""
     **대용량 파일 직접 업로드** - 파일이 브라우저에서 GCS로 직접 업로드됩니다.
@@ -90,22 +92,28 @@ def render_client_direct_upload() -> Optional[str]:
 
         if st.button("다른 파일 업로드", key="reset_upload"):
             st.session_state.client_upload_gs_uri = None
+            st.session_state.client_upload_signed_urls = None
             st.rerun()
 
         return gs_uri
 
-    # 미리 여러 확장자에 대한 Signed URL 생성
-    signed_urls = {}
-    extensions = [".mp4", ".mkv", ".avi", ".mov", ".mp3", ".wav", ".m4a", ".flac"]
+    # Signed URL을 세션에 캐시 (리렌더링 시 동일한 URL 사용)
+    if st.session_state.client_upload_signed_urls is None:
+        signed_urls = {}
+        extensions = [".mp4", ".mkv", ".avi", ".mov", ".mp3", ".wav", ".m4a", ".flac"]
 
-    for ext in extensions:
-        url_info = get_signed_upload_url(f"upload{ext}")
-        if url_info:
-            signed_urls[ext] = {
-                "upload_url": url_info["upload_url"],
-                "gs_uri": url_info["gs_uri"],
-                "content_type": url_info["content_type"],
-            }
+        for ext in extensions:
+            url_info = get_signed_upload_url(f"upload{ext}")
+            if url_info:
+                signed_urls[ext] = {
+                    "upload_url": url_info["upload_url"],
+                    "gs_uri": url_info["gs_uri"],
+                    "content_type": url_info["content_type"],
+                }
+
+        st.session_state.client_upload_signed_urls = signed_urls
+    else:
+        signed_urls = st.session_state.client_upload_signed_urls
 
     if not signed_urls:
         st.error("Signed URL 생성 실패")
